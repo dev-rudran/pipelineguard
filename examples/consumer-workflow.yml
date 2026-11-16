@@ -1,0 +1,24 @@
+# Copy this file into .github/workflows/ in the repository you want to protect.
+name: Security gate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  pipelineguard:
+    uses: dev-rudran/pipelineguard/.github/workflows/security-gate.yml@main
+    permissions:
+      contents: read
+      security-events: write
+    with:
+      path: .
+      fail-on: high
+      offline: true
+      format: sarif,console
+      upload-sarif: true
+      artifact-name: pipelineguard-results
