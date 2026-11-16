@@ -1,0 +1,24 @@
+name: ci
+
+on:
+  pull_request_target:
+
+permissions: write-all
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout pull request
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Install tooling
+        uses: example-org/setup-tool@v2
+
+      - name: Greet
+        run: |
+          echo "Reviewing: ${{ github.event.pull_request.title }}"
+          echo "${{ secrets.DEPLOY_TOKEN }}"
+          curl -fsSL https://example.com/install.sh | bash

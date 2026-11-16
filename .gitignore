@@ -1,0 +1,54 @@
+# Environments
+.venv/
+venv/
+env/
+ENV/
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+*.egg
+.eggs/
+pip-wheel-metadata/
+MANIFEST
+
+# Test and coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+.tox/
+.nox/
+.mypy_cache/
+.ruff_cache/
+.bandit/
+
+# pipelineguard runtime cache
+.pipelineguard-cache/
+.pipelineguard-baseline.json
+
+# Local environment files (the vulnerable example is intentionally tracked)
+.env
+.env.*
+!**/.env.example
+!examples/vulnerable-repo/.env
+
+# Editors and OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Local outputs
+results.json
+results.sarif
+comment.md
+sbom.cdx.json

@@ -1,0 +1,126 @@
+name: Pipelineguard Security Gate
+description: Secret scanning, dependency CVE audit, CycloneDX SBOM and CI configuration audit in one gate.
+author: Rudra Tushir
+branding:
+  icon: shield
+  color: purple
+
+inputs:
+  path:
+    description: Repository or directory to scan.
+    required: false
+    default: "."
+  fail-on:
+    description: Lowest severity that fails the gate (critical, high, medium, low, info or none).
+    required: false
+    default: high
+  policy:
+    description: Policy file path. When empty, <path>/pipelineguard.yaml is used if present.
+    required: false
+    default: ""
+  offline:
+    description: Disable OSV network access.
+    required: false
+    default: "false"
+  advisory-db:
+    description: Local OSV advisory JSON file for offline auditing.
+    required: false
+    default: ""
+  format:
+    description: Comma separated output formats or "all".
+    required: false
+    default: "sarif,console"
+  output-dir:
+    description: Directory for results.json, results.sarif, comment.md and sbom.cdx.json.
+    required: false
+    default: pipelineguard-results
+  upload-sarif:
+    description: Upload results.sarif to GitHub code scanning.
+    required: false
+    default: "true"
+  upload-artifact:
+    description: Upload the output directory as a workflow artifact.
+    required: false
+    default: "true"
+  artifact-name:
+    description: Artifact name for uploaded reports.
+    required: false
+    default: pipelineguard-results
+
+outputs:
+  exit-code:
+    description: Pipelineguard exit code (0 pass, 1 gate failure, 2 tool error).
+    value: ${{ steps.scan.outputs.exit-code }}
+  sarif-file:
+    description: Path to the generated SARIF file, or empty when none was written.
+    value: ${{ steps.scan.outputs.sarif-file }}
+
+runs:
+  using: composite
+  steps:
+    - id: install
+      shell: bash
+      run: python3 -m pip install --disable-pip-version-check --quiet "$GITHUB_ACTION_PATH"
+
+    - id: scan
+      shell: bash
+      continue-on-error: true
+      env:
+        INPUT_PATH: ${{ inputs.path }}
+        INPUT_FAIL_ON: ${{ inputs.fail-on }}
+        INPUT_POLICY: ${{ inputs.policy }}
+        INPUT_OFFLINE: ${{ inputs.offline }}
+        INPUT_ADVISORY_DB: ${{ inputs.advisory-db }}
+        INPUT_FORMAT: ${{ inputs.format }}
+        INPUT_OUTPUT_DIR: ${{ inputs.output-dir }}
+      run: |
+        set -u
+        echo "exit-code=2" >> "$GITHUB_OUTPUT"
+        echo "sarif-file=" >> "$GITHUB_OUTPUT"
+        args=(scan "$INPUT_PATH" --format "$INPUT_FORMAT" --output-dir "$INPUT_OUTPUT_DIR" --no-color)
+        if [ -n "$INPUT_FAIL_ON" ]; then
+          args+=(--fail-on "$INPUT_FAIL_ON")
+        fi
+        if [ -n "$INPUT_POLICY" ]; then
+          args+=(--policy "$INPUT_POLICY")
+        fi
+        if [ "$INPUT_OFFLINE" = "true" ]; then
+          args+=(--offline)
+        fi
+        if [ -n "$INPUT_ADVISORY_DB" ]; then
+          args+=(--advisory-db "$INPUT_ADVISORY_DB")
+        fi
+        set +e
+        pipelineguard "${args[@]}"
+        code=$?
+        set -e
+        echo "exit-code=$code" >> "$GITHUB_OUTPUT"
+        if [ -f "$INPUT_OUTPUT_DIR/results.sarif" ]; then
+          echo "sarif-file=$INPUT_OUTPUT_DIR/results.sarif" >> "$GITHUB_OUTPUT"
+        fi
+
+    - id: upload-sarif
+      if: ${{ always() && inputs.upload-sarif == 'true' && steps.scan.outputs.sarif-file != '' }}
+      uses: github/codeql-action/upload-sarif@9418214df1f2c4b8128c770156c409013b07d6b9 # v3
+      with:
+        sarif_file: ${{ steps.scan.outputs.sarif-file }}
+        category: pipelineguard
+
+    - id: upload-artifact
+      if: ${{ always() && inputs.upload-artifact == 'true' }}
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: ${{ inputs.output-dir }}
+        if-no-files-found: ignore
+        retention-days: 7
+
+    - id: gate
+      if: ${{ always() }}
+      shell: bash
+      env:
+        EXIT_CODE: ${{ steps.scan.outputs.exit-code }}
+      run: |
+        code="${EXIT_CODE:-2}"
+        echo "pipelineguard exit code: $code"
+        exit "$code"

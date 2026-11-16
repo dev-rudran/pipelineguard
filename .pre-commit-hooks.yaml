@@ -1,0 +1,17 @@
+- id: pipelineguard-secrets
+  name: pipelineguard secret scan
+  description: Fast working-tree secret scan with redacted findings.
+  entry: pipelineguard secrets
+  language: python
+  pass_filenames: false
+  always_run: true
+  args: ["--fail-on", "high"]
+
+- id: pipelineguard
+  name: pipelineguard security gate
+  description: Secret, dependency, SBOM and CI configuration gate.
+  entry: pipelineguard scan
+  language: python
+  pass_filenames: false
+  always_run: true
+  args: ["--format", "console", "--fail-on", "high"]

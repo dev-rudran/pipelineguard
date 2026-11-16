@@ -1,0 +1,10 @@
+version: 1
+fail_on: high
+required_scanners:
+  - secrets
+  - deps
+  - sbom
+  - config
+exclude_paths:
+  - "tests/**"
+  - "examples/**"
