@@ -86,12 +86,12 @@ def normalize_spdx(value: str) -> str:
     folded onto the base identifier so ``GPL-3.0``, ``GPL-3.0-only`` and
     ``GPL-3.0-or-later`` share one policy entry.
     """
-    token = value.strip().strip("'\"").lower()
+    token = value.strip().strip("'\"").lower().rstrip("+")
     for suffix in ("-or-later", "-only"):
         if token.endswith(suffix):
             token = token[: -len(suffix)]
             break
-    return token.rstrip("+")
+    return token
 
 
 def denied_license(value: str | None, deny: list[str]) -> str | None:
@@ -136,7 +136,15 @@ class LicenseScanner:
         result.components = project.components
 
         raw_options = context.options.get("licenses")
-        options: dict[str, Any] = raw_options if isinstance(raw_options, dict) else {}
+        if isinstance(raw_options, dict):
+            options: dict[str, Any] = raw_options
+        else:
+            # Also accept flat scanner options for direct ScanContext callers.
+            options = {
+                key: context.options[key]
+                for key in ("deny", "allow_unknown")
+                if key in context.options
+            }
         raw_deny = options.get("deny", list(DEFAULT_DENY_LICENSES))
         if isinstance(raw_deny, list):
             deny = [str(item).strip() for item in raw_deny if str(item).strip()]
