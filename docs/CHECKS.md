@@ -10,6 +10,7 @@ reports. Use `pipelineguard rules list` to print the live list.
 | --- | --- |
 | `secrets` | Working tree, the git index with `--staged`, and added lines from git history with `--history`. Text files up to the configured size limit; binary files are skipped. |
 | `deps` | `requirements*.txt` (recursive includes), `pyproject.toml` (PEP 621 and Poetry), `poetry.lock`, `package-lock.json` v1-v3, `yarn.lock`, `pnpm-lock.yaml`, `go.sum`, `Cargo.lock`. |
+| `licenses` | The same parsed components as `deps`, using license metadata from lockfiles (`package-lock.json`, `pnpm-lock.yaml`, `poetry.lock` when present). |
 | `sbom` | The same manifests as `deps`, collected for CycloneDX 1.5 output. |
 | `config` | `Dockerfile` and `*.dockerfile`, `.github/workflows/*.yml` and `*.yaml`, plus repository hygiene checks. |
 
@@ -71,6 +72,24 @@ CVSS v3 vector or numeric score. Advisories with no usable severity data default
 to medium. Malformed advisory entries are rejected when an advisory file is
 loaded; an OSV transport failure degrades the scan to cached or inventory-only
 metadata instead of crashing it.
+
+## License rules
+
+The `licenses` scanner reads the components resolved by the dependency parsers.
+License identifiers are compared case-insensitively against the policy denylist.
+Deprecated `-only` and `-or-later` suffixes and the legacy `+` form fold onto the
+base identifier, so `GPL-3.0`, `GPL-3.0-only` and `GPL-3.0-or-later` all match a
+`GPL-3.0` deny entry. SPDX expressions such as `MIT OR Apache-2.0` are split into
+individual identifiers.
+
+| Rule | Severity | Meaning |
+| --- | --- | --- |
+| `PIPE-LIC-001` | High | A resolved dependency license matches an entry in `licenses.deny`. The finding includes the component name, version, license and remediation. |
+| `PIPE-LIC-002` | Low | A resolved dependency has no usable license metadata. Reported only when `licenses.allow_unknown` is `false`. |
+
+The default denylist is `GPL-3.0`, `AGPL-3.0` and `SSPL-1.0`. The default for
+`allow_unknown` is `true`, so repositories without license metadata keep their
+current verdict. Configure the scanner in [POLICY.md](POLICY.md#license-policy).
 
 ## Dockerfile checks
 

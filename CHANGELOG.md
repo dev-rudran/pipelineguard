@@ -4,6 +4,17 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- `licenses` scanner for dependency license compliance. It reuses the dependency
+  parsers, enforces a configurable case-insensitive SPDX denylist
+  (`PIPE-LIC-001`, high) and optionally reports dependencies with unknown license
+  metadata (`PIPE-LIC-002`, low). Policy keys `licenses.deny` and
+  `licenses.allow_unknown` default to `GPL-3.0`, `AGPL-3.0` and `SSPL-1.0`, with
+  unknown licenses allowed.
+
 ## [0.1.0] - 2026-11-15
 
 ### Added

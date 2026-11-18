@@ -48,7 +48,7 @@ class Scanner(Protocol):
 
 
 _REGISTRY: dict[str, type] = {}
-_BUILTIN_ORDER = ("secrets", "deps", "sbom", "config")
+_BUILTIN_ORDER = ("secrets", "deps", "licenses", "sbom", "config")
 
 
 def register(scanner_cls: type) -> type:
@@ -93,6 +93,7 @@ def _ensure_builtins() -> None:
     # protocol and the registry, so a top-level import would be circular.
     from . import config as _config  # noqa: F401
     from . import deps as _deps  # noqa: F401
+    from . import licenses as _licenses  # noqa: F401
     from . import sbom as _sbom  # noqa: F401
     from . import secrets as _secrets  # noqa: F401
 

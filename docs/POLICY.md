@@ -6,6 +6,8 @@ file the defaults are:
 - fail when any actionable finding is at severity `high` or above,
 - require no particular scanner,
 - apply no allowances or path exclusions,
+- deny the `GPL-3.0`, `AGPL-3.0` and `SSPL-1.0` dependency licenses while
+  allowing packages without license metadata,
 - use online OSV lookup unless `--offline` is passed.
 
 The CLI looks for `pipelineguard.yaml` in the scanned directory. Pass
@@ -18,12 +20,18 @@ version: 1
 # Lowest severity that fails the gate: critical, high, medium, low, info or none.
 fail_on: high
 
-# Every listed scanner must run. Valid names: secrets, deps, sbom, config.
+# Every listed scanner must run. Valid names: secrets, deps, licenses, sbom, config.
 required_scanners:
   - secrets
   - deps
+  - licenses
   - sbom
   - config
+
+# Dependency license compliance for the licenses scanner.
+licenses:
+  deny: [GPL-3.0, AGPL-3.0, SSPL-1.0]
+  allow_unknown: true
 
 # Optional per-severity budgets. Exceeding a budget fails the gate even when the
 # finding is below fail_on.
@@ -39,6 +47,28 @@ exclude_paths:
 
 # Force offline OSV behaviour for every scan that uses this policy.
 offline: false
+```
+
+## License policy
+
+The `licenses` scanner evaluates the license metadata resolved by the dependency
+parsers. Its configuration lives under the `licenses` key:
+
+| Key | Default | Meaning |
+| --- | --- | --- |
+| `deny` | `[GPL-3.0, AGPL-3.0, SSPL-1.0]` | SPDX identifiers that produce a high severity `PIPE-LIC-001` finding. Matching is case-insensitive and folds `-only`, `-or-later` and legacy `+` suffixes onto the base identifier. |
+| `allow_unknown` | `true` | When `false`, a dependency with no usable license metadata produces a low severity `PIPE-LIC-002` finding. |
+
+Supplying `deny` replaces the default list; use `deny: []` to disable license
+denials. A clean repository with permissive licenses and the default policy is
+not affected by the new scanner. Any `PIPE-LIC-*` finding participates in
+`fail_on`, `max_findings`, allowances, baselines, fingerprints and every report
+format like any other finding.
+
+```yaml
+licenses:
+  deny: [GPL-3.0, AGPL-3.0, SSPL-1.0, CC-BY-NC-4.0]
+  allow_unknown: false
 ```
 
 ## Precedence
@@ -78,7 +108,7 @@ Supported keys:
 
 | Key | Meaning |
 | --- | --- |
-| `scanner` | Match only findings from `secrets`, `deps`, `sbom` or `config`. |
+| `scanner` | Match only findings from `secrets`, `deps`, `licenses`, `sbom` or `config`. |
 | `id` / `rule` | Match a rule identifier such as `PIPE-SEC-001`. `rule` is an alias. |
 | `fingerprint` | Match the stable finding fingerprint. |
 | `file` / `path` | Match a path glob. `path` is an alias. |

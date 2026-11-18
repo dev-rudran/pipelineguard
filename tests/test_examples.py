@@ -81,7 +81,7 @@ def test_vulnerable_repository_sbom_is_inventoried():
 
 
 def test_clean_repository_has_no_findings():
-    for scanner in ("secrets", "sbom", "config"):
+    for scanner in ("secrets", "licenses", "sbom", "config"):
         result = scan(scanner, CLEAN)
         assert result.findings == [], scanner
         assert result.error is None, scanner

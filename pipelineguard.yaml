@@ -3,8 +3,12 @@ fail_on: high
 required_scanners:
   - secrets
   - deps
+  - licenses
   - sbom
   - config
+licenses:
+  deny: [GPL-3.0, AGPL-3.0, SSPL-1.0]
+  allow_unknown: true
 exclude_paths:
   - "tests/**"
   - "examples/**"

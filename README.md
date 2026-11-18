@@ -7,10 +7,10 @@
 [![Reports](https://img.shields.io/badge/reports-JSON%20%7C%20SARIF%20%7C%20Markdown%20%7C%20CycloneDX-38bdf8)](docs/CHECKS.md)
 
 pipelineguard is a CI/CD security gate for repositories. One command scans for
-committed secrets, audits dependencies against OSV, builds a CycloneDX 1.5 SBOM
-and audits Dockerfiles, GitHub Actions workflows and repository hygiene. A policy
-turns the findings into a pass or fail verdict with exit codes that CI can rely
-on.
+committed secrets, audits dependencies against OSV and a license policy, builds a
+CycloneDX 1.5 SBOM and audits Dockerfiles, GitHub Actions workflows and repository
+hygiene. A policy turns the findings into a pass or fail verdict with exit codes
+that CI can rely on.
 
 It is designed for untrusted code and untrusted input: findings carry redacted
 values and fingerprints, never raw credentials; git is invoked without a shell;
@@ -25,6 +25,8 @@ network access is limited to the fixed OSV endpoint and can be disabled entirely
 - **Dependency audit** for PyPI, npm, Go and crates.io manifests and lockfiles,
   with OSV severity mapping, fixed versions, aliases and an offline advisory
   database.
+- **License compliance** using lockfile license metadata, with a case-insensitive
+  SPDX denylist and optional reporting of dependencies whose license is unknown.
 - **CycloneDX 1.5 SBOM** with deterministic serial numbers, purls, licenses,
   direct/transitive markers and reproducible component ordering.
 - **Configuration audit** for root containers, floating base images, unpinned
@@ -115,6 +117,9 @@ deps  (1 finding(s), 0.00s)
   HIGH     PIPE-DEP-001   requirements.txt
            jinja2 2.11.2 is affected by CVE-2020-28493: ReDoS in Jinja2 when parsing untrusted templates Upgrade to 2.11.3 or later.
 
+licenses  (0 finding(s), 0.00s)
+  clean
+
 sbom  (0 finding(s), 0.00s)
   clean
 
@@ -181,6 +186,7 @@ Scanner  Critical  High  Medium  Low  Info  Total
 -------  --------  ----  ------  ---  ----  -----
 secrets  6         5     0       0    0        11
 deps     0         1     0       0    0         1
+licenses 0         0     0       0    0         0
 sbom     0         0     0       0    0         0
 config   4         7     6       3    0        20
 -------  --------  ----  ------  ---  ----  -----
@@ -250,7 +256,11 @@ and require no specific scanner.
 ```yaml
 version: 1
 fail_on: high
-required_scanners: [secrets, deps, sbom, config]
+required_scanners: [secrets, deps, licenses, sbom, config]
+
+licenses:
+  deny: [GPL-3.0, AGPL-3.0, SSPL-1.0]
+  allow_unknown: true
 
 max_findings:
   critical: 0
@@ -411,6 +421,7 @@ pipelineguard rules list
 | --- | --- | --- |
 | Secrets | 18 vendor and generic credential patterns, private keys, entropy and placeholders | `PIPE-SEC-001` to `PIPE-SEC-018` |
 | Dependencies | OSV vulnerabilities and unpinned declarations | `PIPE-DEP-001`, `PIPE-DEP-002` |
+| Licenses | Denylisted dependency licenses and dependencies with unknown license metadata | `PIPE-LIC-001`, `PIPE-LIC-002` |
 | Dockerfiles | Root user, base image pinning, remote ADD, image secrets, apt hygiene, curl pipes, permissions | `PIPE-CFG-001` to `PIPE-CFG-008` |
 | GitHub Actions | Action SHA pinning, token permissions, `pull_request_target`, script injection, secret echo, `workflow_run` | `PIPE-CFG-009` to `PIPE-CFG-014` |
 | Hygiene | Committed `.env`, missing `.gitignore`, `.env` ignore rule, missing lockfiles, private keys | `PIPE-CFG-015` to `PIPE-CFG-019` |

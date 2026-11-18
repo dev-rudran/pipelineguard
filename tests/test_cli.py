@@ -25,6 +25,7 @@ def test_rules_list_all(capsys):
     out = capsys.readouterr().out
     assert "PIPE-SEC-001" in out
     assert "PIPE-DEP-001" in out
+    assert "PIPE-LIC-001" in out
     assert "PIPE-CFG-001" in out
     assert "rule(s)." in out
 
@@ -33,6 +34,14 @@ def test_rules_list_filters_by_scanner(capsys):
     assert run_cli(["rules", "list", "--scanner", "config"]) == 0
     out = capsys.readouterr().out
     assert "PIPE-CFG-001" in out
+    assert "PIPE-SEC-001" not in out
+
+
+def test_rules_list_filters_licenses(capsys):
+    assert run_cli(["rules", "list", "--scanner", "licenses"]) == 0
+    out = capsys.readouterr().out
+    assert "PIPE-LIC-001" in out
+    assert "PIPE-LIC-002" in out
     assert "PIPE-SEC-001" not in out
 
 
@@ -188,7 +197,7 @@ def test_scan_json_stdout(tmp_path, capsys):
     assert exit_code == 1
     payload = json.loads(capsys.readouterr().out)
     assert payload["gate"]["status"] == "fail"
-    assert len(payload["scanners"]) == 4
+    assert len(payload["scanners"]) == 5
 
 
 def test_scan_console_and_json_without_output_dir(capsys):

@@ -23,6 +23,8 @@ from .models import (
 
 POLICY_FILENAME = "pipelineguard.yaml"
 DEFAULT_FAIL_ON = Severity.HIGH
+DEFAULT_DENY_LICENSES = ("GPL-3.0", "AGPL-3.0", "SSPL-1.0")
+DEFAULT_ALLOW_UNKNOWN = True
 ALLOWED_KEYS = {
     "version",
     "fail_on",
@@ -31,7 +33,9 @@ ALLOWED_KEYS = {
     "allow",
     "exclude_paths",
     "offline",
+    "licenses",
 }
+ALLOWED_LICENSE_KEYS = {"deny", "allow_unknown"}
 ALLOWED_ALLOW_KEYS = {
     "scanner",
     "fingerprint",
@@ -120,6 +124,15 @@ class Allowance:
 
 
 @dataclass
+class LicensePolicy:
+    deny: list[str] = field(default_factory=lambda: list(DEFAULT_DENY_LICENSES))
+    allow_unknown: bool = DEFAULT_ALLOW_UNKNOWN
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"deny": list(self.deny), "allow_unknown": self.allow_unknown}
+
+
+@dataclass
 class Policy:
     fail_on: Severity | None = DEFAULT_FAIL_ON
     required_scanners: list[str] = field(default_factory=list)
@@ -127,6 +140,7 @@ class Policy:
     allowances: list[Allowance] = field(default_factory=list)
     exclude_paths: list[str] = field(default_factory=list)
     offline: bool = False
+    licenses: LicensePolicy = field(default_factory=LicensePolicy)
     source: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
@@ -139,6 +153,7 @@ class Policy:
             "allow": [allowance.to_dict() for allowance in self.allowances],
             "exclude_paths": list(self.exclude_paths),
             "offline": self.offline,
+            "licenses": self.licenses.to_dict(),
             "source": self.source,
         }
 
@@ -240,6 +255,8 @@ def parse_policy(document: dict[str, Any], source: str | None = None) -> Policy:
         errors.append("offline must be true or false")
         offline = False
 
+    licenses = _parse_license_policy(document.get("licenses"), errors)
+
     if errors:
         raise PolicyError(errors)
     return Policy(
@@ -249,8 +266,37 @@ def parse_policy(document: dict[str, Any], source: str | None = None) -> Policy:
         allowances=allowances,
         exclude_paths=[str(item) for item in exclude_paths],
         offline=offline,
+        licenses=licenses,
         source=source,
     )
+
+
+def _parse_license_policy(value: Any, errors: list[str]) -> LicensePolicy:
+    if value is None:
+        return LicensePolicy()
+    if not isinstance(value, dict):
+        errors.append("licenses must be a mapping with deny and allow_unknown")
+        return LicensePolicy()
+
+    unknown = set(value) - ALLOWED_LICENSE_KEYS
+    if unknown:
+        errors.append(f"licenses has unknown keys: {', '.join(sorted(unknown))}")
+
+    raw_deny = value.get("deny", list(DEFAULT_DENY_LICENSES))
+    if raw_deny is None:
+        raw_deny = []
+    if not isinstance(raw_deny, list) or any(not isinstance(item, str) for item in raw_deny):
+        errors.append("licenses.deny must be a list of SPDX identifiers")
+        deny = list(DEFAULT_DENY_LICENSES)
+    else:
+        deny = [item.strip() for item in raw_deny if item.strip()]
+
+    allow_unknown = value.get("allow_unknown", DEFAULT_ALLOW_UNKNOWN)
+    if not isinstance(allow_unknown, bool):
+        errors.append("licenses.allow_unknown must be true or false")
+        allow_unknown = DEFAULT_ALLOW_UNKNOWN
+
+    return LicensePolicy(deny=deny, allow_unknown=allow_unknown)
 
 
 def _parse_allowance(index: int, entry: Any) -> tuple[Allowance | None, list[str]]:

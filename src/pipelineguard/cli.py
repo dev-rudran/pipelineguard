@@ -60,7 +60,7 @@ def _build_parser() -> argparse.ArgumentParser:
     scan = subparsers.add_parser(
         "scan",
         help="Run every scanner and evaluate the policy",
-        description="Run secrets, deps, sbom and config scanners, then evaluate the gate.",
+        description="Run secrets, deps, licenses, sbom and config scanners, then evaluate the gate.",
     )
     scan.add_argument(
         "path", nargs="?", default=".", help="Repository or directory to scan (default: .)"
@@ -161,7 +161,9 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     rules_subparsers = rules.add_subparsers(dest="rules_command", required=True)
     rules_list = rules_subparsers.add_parser("list", help="List rules")
-    rules_list.add_argument("--scanner", help="Filter by scanner: secrets, deps or config")
+    rules_list.add_argument(
+        "--scanner", help="Filter by scanner: secrets, deps, licenses or config"
+    )
 
     subparsers.add_parser("version", help="Print the version")
     return parser
@@ -359,6 +361,7 @@ def _command_policy_validate(args: argparse.Namespace) -> int:
 
 def _command_rules_list(args: argparse.Namespace) -> int:
     from .scanners.config import CONFIG_CHECKS, DEP_RULES
+    from .scanners.licenses import LICENSE_RULES
 
     rows: list[tuple[str, str, str, str]] = []
     if args.scanner in (None, "secrets"):
@@ -367,6 +370,11 @@ def _command_rules_list(args: argparse.Namespace) -> int:
     if args.scanner in (None, "deps"):
         rows.extend(
             (check.id, check.severity.value, "deps", check.name) for check in DEP_RULES.values()
+        )
+    if args.scanner in (None, "licenses"):
+        rows.extend(
+            (check.id, check.severity.value, "licenses", check.name)
+            for check in LICENSE_RULES.values()
         )
     if args.scanner in (None, "config"):
         rows.extend(
@@ -416,6 +424,7 @@ def _run_scan(
         advisory_db=advisory_db,
         cache_dir=cache_dir,
         timeout=timeout,
+        options={"licenses": policy.licenses.to_dict()},
     )
     scanners = build_scanners(scanner_names)
     report = ScanReport(

@@ -386,6 +386,7 @@ def parse_poetry_lock(root: Path, relative: str = "poetry.lock") -> ParsedProjec
                 name=name,
                 version=version,
                 direct=False,
+                license=_license_name(package.get("license")),
                 source=relative,
             )
         )
