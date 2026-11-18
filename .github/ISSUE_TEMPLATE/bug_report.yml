@@ -1,0 +1,56 @@
+name: Bug report
+description: Report a reproducible defect
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. Please include enough detail to reproduce it.
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Output of the tool's version command, or the commit SHA.
+      placeholder: "0.1.0 / abc1234"
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, distribution, Python version, and any relevant runtime details.
+      placeholder: "Ubuntu 24.04, Python 3.12.3"
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Exact commands and inputs. Redact secrets and sensitive hostnames.
+      placeholder: |
+        1. Run ...
+        2. Observe ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+      description: Include the full output or traceback if possible.
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I have redacted credentials, tokens and sensitive hostnames.
+          required: true
+        - label: I searched existing issues before opening this one.
+          required: true
