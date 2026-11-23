@@ -65,6 +65,8 @@ python -m pip install -e ".[dev]"
 
 ## Quick start
 
+See [docs/QUICKSTART.md](docs/QUICKSTART.md) for a five-minute walkthrough.
+
 Scan the bundled vulnerable example with the offline advisory fixture:
 
 ```console
